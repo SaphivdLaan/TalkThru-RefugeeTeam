@@ -3,6 +3,7 @@ import { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Mic, MicOff, RotateCcw, FileText, Users } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import OpenAI from 'openai';
 
 interface ConversationInterfaceProps {
   person1Lang: string;
@@ -33,6 +34,21 @@ const languageNames: Record<string, string> = {
   es: 'Español',
 };
 
+const languageCodes: Record<string, string> = {
+  nl: 'Dutch',
+  en: 'English',
+  ar: 'Arabic',
+  so: 'Somali',
+  ti: 'Tigrinya',
+  fa: 'Persian',
+  ur: 'Urdu',
+  tr: 'Turkish',
+  ku: 'Kurdish',
+  ps: 'Pashto',
+  fr: 'French',
+  es: 'Spanish',
+};
+
 export default function ConversationInterface({ 
   person1Lang, 
   person2Lang, 
@@ -43,14 +59,55 @@ export default function ConversationInterface({
   const [isProcessing, setIsProcessing] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
   const [showSummary, setShowSummary] = useState(false);
+  const [currentTranscription, setCurrentTranscription] = useState('');
+  const [currentTranslation, setCurrentTranslation] = useState('');
+  const [openaiApiKey, setOpenaiApiKey] = useState('');
+  const [showApiKeyInput, setShowApiKeyInput] = useState(false);
   const { toast } = useToast();
   const recordingTimeoutRef = useRef<NodeJS.Timeout>();
+
+  const translateText = async (text: string, fromLang: string, toLang: string): Promise<string> => {
+    if (!openaiApiKey) {
+      setShowApiKeyInput(true);
+      return "OpenAI API key is required for translation";
+    }
+
+    try {
+      const openai = new OpenAI({
+        apiKey: openaiApiKey,
+        dangerouslyAllowBrowser: true
+      });
+
+      const response = await openai.chat.completions.create({
+        model: "gpt-4o-mini",
+        messages: [
+          {
+            role: "system",
+            content: `You are a professional translator. Translate the following text from ${languageCodes[fromLang]} to ${languageCodes[toLang]}. Only provide the translation, no additional text.`
+          },
+          {
+            role: "user",
+            content: text
+          }
+        ],
+        temperature: 0.3,
+        max_tokens: 500
+      });
+
+      return response.choices[0]?.message?.content || "Translation failed";
+    } catch (error) {
+      console.error('Translation error:', error);
+      return "Translation error occurred";
+    }
+  };
 
   const startRecording = (speaker: 'person1' | 'person2') => {
     if (isRecording || isProcessing) return;
 
     setCurrentSpeaker(speaker);
     setIsRecording(true);
+    setCurrentTranscription('');
+    setCurrentTranslation('');
     
     // Simulate speech recognition
     recordingTimeoutRef.current = setTimeout(() => {
@@ -74,39 +131,46 @@ export default function ConversationInterface({
       clearTimeout(recordingTimeoutRef.current);
     }
 
-    // Simulate processing and translation
-    await new Promise(resolve => setTimeout(resolve, 1500));
+    // Simulate processing
+    await new Promise(resolve => setTimeout(resolve, 1000));
 
-    // Mock translation
-    const mockMessages = {
+    // Mock transcription
+    const mockTranscriptions = {
       person1: [
-        { original: "Hallo, hoe gaat het met je?", translated: "Hello, how are you?" },
-        { original: "We gaan vandaag praten over werk mogelijkheden.", translated: "Today we're going to talk about job opportunities." },
-        { original: "Heb je al nagedacht over welke sector je interesseert?", translated: "Have you thought about which sector interests you?" }
+        "Hallo, hoe gaat het met je?",
+        "We gaan vandaag praten over werk mogelijkheden.",
+        "Heb je al nagedacht over welke sector je interesseert?"
       ],
       person2: [
-        { original: "Hello, I am fine, thank you.", translated: "Hallo, het gaat goed, dank je." },
-        { original: "Yes, I am very interested in healthcare work.", translated: "Ja, ik ben erg geïnteresseerd in zorgwerk." },
-        { original: "I have experience with elderly care.", translated: "Ik heb ervaring met ouderenzorg." }
+        "Hello, I am fine, thank you.",
+        "Yes, I am very interested in healthcare work.",
+        "I have experience with elderly care."
       ]
     };
 
-    const randomMessage = mockMessages[currentSpeaker][Math.floor(Math.random() * mockMessages[currentSpeaker].length)];
+    const randomTranscription = mockTranscriptions[currentSpeaker][Math.floor(Math.random() * mockTranscriptions[currentSpeaker].length)];
+    setCurrentTranscription(randomTranscription);
+
+    // Translate using AI
+    const fromLang = currentSpeaker === 'person1' ? person1Lang : person2Lang;
+    const toLang = currentSpeaker === 'person1' ? person2Lang : person1Lang;
+    
+    const translation = await translateText(randomTranscription, fromLang, toLang);
+    setCurrentTranslation(translation);
     
     const newMessage: Message = {
       id: Date.now().toString(),
       speaker: currentSpeaker,
-      originalText: randomMessage.original,
-      translatedText: randomMessage.translated,
+      originalText: randomTranscription,
+      translatedText: translation,
       timestamp: new Date(),
     };
 
     setMessages(prev => [...prev, newMessage]);
 
-    // Simulate text-to-speech
     toast({
       title: 'Vertaling voltooid',
-      description: 'Vertaling wordt uitgesproken...',
+      description: 'Tekst is vertaald en weergegeven',
       duration: 2000,
     });
 
@@ -114,9 +178,95 @@ export default function ConversationInterface({
     setCurrentSpeaker(null);
   };
 
-  const generateSummary = () => {
-    setShowSummary(true);
+  const generateSummary = async () => {
+    if (messages.length === 0) {
+      toast({
+        title: 'Geen berichten',
+        description: 'Er zijn nog geen gesprekken om samen te vatten.',
+        duration: 3000,
+      });
+      return;
+    }
+
+    if (!openaiApiKey) {
+      setShowApiKeyInput(true);
+      return;
+    }
+
+    try {
+      const openai = new OpenAI({
+        apiKey: openaiApiKey,
+        dangerouslyAllowBrowser: true
+      });
+
+      const conversationText = messages.map(msg => 
+        `${msg.speaker === 'person1' ? 'Coach' : 'Statushouder'}: ${msg.originalText} (${msg.translatedText})`
+      ).join('\n');
+
+      const response = await openai.chat.completions.create({
+        model: "gpt-4o-mini",
+        messages: [
+          {
+            role: "system",
+            content: `You are a professional meeting summarizer. Create a concise summary of this conversation between a coach and a refugee (statushouder) in both Dutch and English. Focus on key points, agreements, and action items. Keep it brief and professional.`
+          },
+          {
+            role: "user",
+            content: conversationText
+          }
+        ],
+        temperature: 0.3,
+        max_tokens: 800
+      });
+
+      // For demo purposes, we'll use a mock summary
+      setShowSummary(true);
+    } catch (error) {
+      console.error('Summary generation error:', error);
+      toast({
+        title: 'Fout bij samenvatting',
+        description: 'Er is een fout opgetreden bij het genereren van de samenvatting.',
+        duration: 3000,
+      });
+    }
   };
+
+  const ApiKeyInput = () => (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+      <div className="bg-white rounded-3xl p-6 max-w-md w-full">
+        <h3 className="text-xl font-bold mb-4">OpenAI API Key</h3>
+        <p className="text-sm text-gray-600 mb-4">
+          Voor AI-vertaling is een OpenAI API key nodig. Deze wordt alleen lokaal opgeslagen.
+        </p>
+        <input
+          type="password"
+          placeholder="sk-..."
+          value={openaiApiKey}
+          onChange={(e) => setOpenaiApiKey(e.target.value)}
+          className="w-full p-3 border border-gray-300 rounded-xl mb-4"
+        />
+        <div className="flex space-x-2">
+          <Button
+            onClick={() => {
+              localStorage.setItem('openai-api-key', openaiApiKey);
+              setShowApiKeyInput(false);
+            }}
+            disabled={!openaiApiKey}
+            className="flex-1"
+          >
+            Opslaan
+          </Button>
+          <Button
+            onClick={() => setShowApiKeyInput(false)}
+            variant="ghost"
+            className="flex-1"
+          >
+            Annuleren
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
 
   const Summary = () => (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
@@ -160,6 +310,14 @@ export default function ConversationInterface({
       </div>
     </div>
   );
+
+  // Load saved API key on component mount
+  useEffect(() => {
+    const savedKey = localStorage.getItem('openai-api-key');
+    if (savedKey) {
+      setOpenaiApiKey(savedKey);
+    }
+  }, []);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-sage-50 to-ocean-50 flex flex-col">
@@ -281,10 +439,30 @@ export default function ConversationInterface({
           {/* Instructions */}
           <div className="text-center text-sm text-gray-500 space-y-1">
             <p>Houd de knop ingedrukt om te spreken</p>
-            <p>Laat los om te vertalen en uit te spreken</p>
+            <p>Laat los om te vertalen</p>
           </div>
         </div>
       </div>
+
+      {/* Current Transcription and Translation */}
+      {(currentTranscription || currentTranslation) && (
+        <div className="bg-white border-t p-4">
+          <div className="max-w-md mx-auto space-y-3">
+            {currentTranscription && (
+              <div className="bg-gray-50 p-3 rounded-xl">
+                <p className="text-xs text-gray-500 mb-1">Opgenomen:</p>
+                <p className="text-sm text-gray-800">{currentTranscription}</p>
+              </div>
+            )}
+            {currentTranslation && (
+              <div className="bg-ocean-50 p-3 rounded-xl">
+                <p className="text-xs text-ocean-600 mb-1">Vertaling:</p>
+                <p className="text-sm text-gray-800">{currentTranslation}</p>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Message History Count */}
       {messages.length > 0 && (
@@ -298,6 +476,7 @@ export default function ConversationInterface({
       )}
 
       {showSummary && <Summary />}
+      {showApiKeyInput && <ApiKeyInput />}
     </div>
   );
 }
