@@ -1,6 +1,7 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { Mic, MicOff, RotateCcw, FileText, Users } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import OpenAI from 'openai';
@@ -59,12 +60,9 @@ export default function ConversationInterface({
   const [isProcessing, setIsProcessing] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
   const [showSummary, setShowSummary] = useState(false);
-  const [currentTranscription, setCurrentTranscription] = useState('');
-  const [currentTranslation, setCurrentTranslation] = useState('');
   const [openaiApiKey, setOpenaiApiKey] = useState('');
   const [showApiKeyInput, setShowApiKeyInput] = useState(false);
   const { toast } = useToast();
-  const recordingTimeoutRef = useRef<NodeJS.Timeout>();
 
   const translateText = async (text: string, fromLang: string, toLang: string): Promise<string> => {
     if (!openaiApiKey) {
@@ -106,17 +104,10 @@ export default function ConversationInterface({
 
     setCurrentSpeaker(speaker);
     setIsRecording(true);
-    setCurrentTranscription('');
-    setCurrentTranslation('');
     
-    // Simulate speech recognition
-    recordingTimeoutRef.current = setTimeout(() => {
-      stopRecording();
-    }, 3000); // Auto-stop after 3 seconds for demo
-
     toast({
       title: `${speaker === 'person1' ? 'Coach' : 'Statushouder'} spreekt`,
-      description: 'Luistert naar spraak...',
+      description: 'Druk nogmaals om te stoppen...',
       duration: 2000,
     });
   };
@@ -127,10 +118,6 @@ export default function ConversationInterface({
     setIsRecording(false);
     setIsProcessing(true);
 
-    if (recordingTimeoutRef.current) {
-      clearTimeout(recordingTimeoutRef.current);
-    }
-
     // Simulate processing
     await new Promise(resolve => setTimeout(resolve, 1000));
 
@@ -139,24 +126,26 @@ export default function ConversationInterface({
       person1: [
         "Hallo, hoe gaat het met je?",
         "We gaan vandaag praten over werk mogelijkheden.",
-        "Heb je al nagedacht over welke sector je interesseert?"
+        "Heb je al nagedacht over welke sector je interesseert?",
+        "Welke ervaring heb je met werk in je eigen land?",
+        "Ik kan je helpen met het vinden van passende cursussen."
       ],
       person2: [
         "Hello, I am fine, thank you.",
         "Yes, I am very interested in healthcare work.",
-        "I have experience with elderly care."
+        "I have experience with elderly care.",
+        "I worked as a nurse for five years.",
+        "That would be very helpful, thank you."
       ]
     };
 
     const randomTranscription = mockTranscriptions[currentSpeaker][Math.floor(Math.random() * mockTranscriptions[currentSpeaker].length)];
-    setCurrentTranscription(randomTranscription);
 
     // Translate using AI
     const fromLang = currentSpeaker === 'person1' ? person1Lang : person2Lang;
     const toLang = currentSpeaker === 'person1' ? person2Lang : person1Lang;
     
     const translation = await translateText(randomTranscription, fromLang, toLang);
-    setCurrentTranslation(translation);
     
     const newMessage: Message = {
       id: Date.now().toString(),
@@ -176,6 +165,14 @@ export default function ConversationInterface({
 
     setIsProcessing(false);
     setCurrentSpeaker(null);
+  };
+
+  const handleRecordingClick = (speaker: 'person1' | 'person2') => {
+    if (isRecording && currentSpeaker === speaker) {
+      stopRecording();
+    } else if (!isRecording && !isProcessing) {
+      startRecording(speaker);
+    }
   };
 
   const generateSummary = async () => {
@@ -379,6 +376,7 @@ export default function ConversationInterface({
                 <p className="text-lg font-medium text-gray-700">
                   {currentSpeaker === 'person1' ? 'Coach spreekt...' : 'Statushouder spreekt...'}
                 </p>
+                <p className="text-sm text-gray-500">Druk nogmaals om te stoppen</p>
               </div>
             ) : (
               <div className="space-y-2">
@@ -396,10 +394,7 @@ export default function ConversationInterface({
             <div className="text-center">
               <p className="text-sm text-gray-600 mb-3">Coach / Vrijwilliger</p>
               <button
-                onMouseDown={() => startRecording('person1')}
-                onMouseUp={stopRecording}
-                onTouchStart={() => startRecording('person1')}
-                onTouchEnd={stopRecording}
+                onClick={() => handleRecordingClick('person1')}
                 disabled={isRecording && currentSpeaker !== 'person1' || isProcessing}
                 className={`w-32 h-32 speech-button ${
                   isRecording && currentSpeaker === 'person1' ? 'active' : ''
@@ -421,10 +416,7 @@ export default function ConversationInterface({
             <div className="text-center">
               <p className="text-sm text-gray-600 mb-3">Statushouder</p>
               <button
-                onMouseDown={() => startRecording('person2')}
-                onMouseUp={stopRecording}
-                onTouchStart={() => startRecording('person2')}
-                onTouchEnd={stopRecording}
+                onClick={() => handleRecordingClick('person2')}
                 disabled={isRecording && currentSpeaker !== 'person2' || isProcessing}
                 className={`w-32 h-32 speech-button ${
                   isRecording && currentSpeaker === 'person2' ? 'active' : ''
@@ -438,39 +430,53 @@ export default function ConversationInterface({
 
           {/* Instructions */}
           <div className="text-center text-sm text-gray-500 space-y-1">
-            <p>Houd de knop ingedrukt om te spreken</p>
-            <p>Laat los om te vertalen</p>
+            <p>Druk om te beginnen met spreken</p>
+            <p>Druk nogmaals om te stoppen</p>
           </div>
         </div>
       </div>
 
-      {/* Current Transcription and Translation */}
-      {(currentTranscription || currentTranslation) && (
-        <div className="bg-white border-t p-4">
-          <div className="max-w-md mx-auto space-y-3">
-            {currentTranscription && (
-              <div className="bg-gray-50 p-3 rounded-xl">
-                <p className="text-xs text-gray-500 mb-1">Opgenomen:</p>
-                <p className="text-sm text-gray-800">{currentTranscription}</p>
-              </div>
-            )}
-            {currentTranslation && (
-              <div className="bg-ocean-50 p-3 rounded-xl">
-                <p className="text-xs text-ocean-600 mb-1">Vertaling:</p>
-                <p className="text-sm text-gray-800">{currentTranslation}</p>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* Message History Count */}
+      {/* Messages History with Scroll */}
       {messages.length > 0 && (
-        <div className="bg-white border-t p-4">
-          <div className="max-w-md mx-auto text-center">
-            <p className="text-sm text-gray-600">
-              {messages.length} bericht{messages.length !== 1 ? 'en' : ''} uitgewisseld
-            </p>
+        <div className="bg-white border-t">
+          <div className="max-w-md mx-auto">
+            <div className="p-4 border-b">
+              <h3 className="font-semibold text-gray-800 text-center">Gesprekgeschiedenis</h3>
+            </div>
+            <ScrollArea className="h-64">
+              <div className="p-4 space-y-4">
+                {messages.map((message) => (
+                  <div key={message.id} className="space-y-2">
+                    <div className="flex items-center space-x-2">
+                      <div className={`w-3 h-3 rounded-full ${
+                        message.speaker === 'person1' ? 'bg-sage-500' : 'bg-ocean-500'
+                      }`}></div>
+                      <span className="text-sm font-medium text-gray-700">
+                        {message.speaker === 'person1' ? 'Coach' : 'Statushouder'}
+                      </span>
+                      <span className="text-xs text-gray-400">
+                        {message.timestamp.toLocaleTimeString('nl-NL', { 
+                          hour: '2-digit', 
+                          minute: '2-digit' 
+                        })}
+                      </span>
+                    </div>
+                    
+                    <div className="bg-gray-50 p-3 rounded-xl ml-5">
+                      <p className="text-xs text-gray-500 mb-1">Opgenomen:</p>
+                      <p className="text-sm text-gray-800 mb-2">{message.originalText}</p>
+                      <p className="text-xs text-gray-500 mb-1">Vertaling:</p>
+                      <p className="text-sm text-gray-800">{message.translatedText}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </ScrollArea>
+            <div className="p-4 text-center border-t">
+              <p className="text-sm text-gray-600">
+                {messages.length} bericht{messages.length !== 1 ? 'en' : ''} uitgewisseld
+              </p>
+            </div>
           </div>
         </div>
       )}
