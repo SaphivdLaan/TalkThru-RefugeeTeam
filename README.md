@@ -1,73 +1,90 @@
-# Welcome to your Lovable project
+````markdown
+# TalkThru – begeleide vertaalapp voor het clubhuis
 
-## Project info
+**TalkThru** is een vertaalapp die speciaal is ontwikkeld voor gesprekken tussen statushouders en hun coaches of begeleiders binnen het clubhuis. De app is ontworpen om taalbarrières te doorbreken tijdens belangrijke één-op-één gesprekken, zoals intake- of voortgangsgesprekken, zonder dat het menselijke contact verloren gaat. TalkThru ondersteunt gesproken vertaling in real-time, met een focus op eenvoud, rust en privacy.
 
-**URL**: https://lovable.dev/projects/fd718c4b-0134-46ac-84c1-9520e260f748
+---
 
-## How can I edit this code?
+## 🔍 Projectdoel
 
-There are several ways of editing your application.
+De kern van TalkThru is om mensen elkaar beter te laten begrijpen zonder afhankelijk te zijn van tolken of gebrekkige vertaaltools zoals Google Translate. De app:
+- vertaalt gesproken tekst beurtelings tussen twee gesprekspartners,
+- ondersteunt meerdere talen, inclusief minderheidstalen,
+- minimaliseert afleiding van het gesprek door een eenvoudige interface,
+- houdt ruimte voor non-verbale communicatie,
+- genereert aan het einde van het gesprek een korte tweetalige samenvatting.
 
-**Use Lovable**
+De app is uitsluitend bedoeld voor begeleide gesprekken en is dus niet bedoeld als algemene vertaaltool voor dagelijks gebruik.
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/fd718c4b-0134-46ac-84c1-9520e260f748) and start prompting.
+---
 
-Changes made via Lovable will be committed automatically to this repo.
+## ⚙️ Technische specificaties
 
-**Use your preferred IDE**
+Dit project is gebouwd met de volgende stack:
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+- **Vite** – voor snelle ontwikkeling
+- **React** – frontend framework
+- **TypeScript** – statisch typen voor betrouwbaardere code
+- **Tailwind CSS** – utility-first styling
+- **shadcn/ui** – UI-componenten
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+---
 
-Follow these steps:
+## 🧪 Project starten
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+Je kunt dit project bewerken via Lovable of lokaal op je eigen machine.
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+### Bewerken via Lovable
+Bezoek de projectpagina:  
+**[TalkThru op Lovable](https://lovable.dev/projects/fd718c4b-0134-46ac-84c1-9520e260f748)**  
+Gebruik prompts om de app stap voor stap aan te passen. Alle wijzigingen worden automatisch opgeslagen.
 
-# Step 3: Install the necessary dependencies.
-npm i
+### Lokaal werken
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
+Zorg dat je Node.js en npm geïnstalleerd hebt (bijv. via `nvm`).
+
+1. Clone de repository:
+   ```bash
+   git clone <YOUR_GIT_URL>
+   cd <YOUR_PROJECT_NAME>
 ```
 
-**Edit a file directly in GitHub**
+2. Installeer afhankelijkheden:
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+   ```bash
+   npm install
+   ```
 
-**Use GitHub Codespaces**
+3. Start de ontwikkelserver:
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+   ```bash
+   npm run dev
+   ```
 
-## What technologies are used for this project?
+De app draait nu lokaal en ververst automatisch bij wijzigingen.
 
-This project is built with:
+---
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+## 🌐 Deployment
 
-## How can I deploy this project?
+Publiceren kan direct via Lovable:
+Ga naar het project, klik op **Share** → **Publish**.
 
-Simply open [Lovable](https://lovable.dev/projects/fd718c4b-0134-46ac-84c1-9520e260f748) and click on Share -> Publish.
+Wil je een eigen domein koppelen?
+Ga naar **Project > Settings > Domains** en klik op **Connect Domain**.
 
-## Can I connect a custom domain to my Lovable project?
+Meer info: [Lovable Docs – Custom Domains](https://docs.lovable.dev/domains)
 
-Yes, you can!
+---
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+## 🤝 Context en samenwerking
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)
+Dit project is ontstaan uit een samenwerking met het clubhuis, een plek waar statushouders ondersteund worden in hun participatie in de samenleving. TalkThru is ontworpen op basis van praktijkonderzoek, gesprekken met coördinatoren en gebruikers (inclusief persona’s), en functionele eisen vanuit het veld. De app wordt getest in echte coachgesprekken en groeit in co-creatie met de mensen die hem nodig hebben.
+
+Voor vragen of samenwerking: neem contact op via het projectdashboard op Lovable of via de hoofdontwikkelaar.
+
+---
+
+© 2025 – TalkThru Project | Ontwikkeld met ♥ en aandacht voor menselijk contact | Saphi.nl
+
+```
