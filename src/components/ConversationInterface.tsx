@@ -117,8 +117,8 @@ export default function ConversationInterface({
 
       // Setup speech recognition
       if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
-        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-        const recognition = new SpeechRecognition();
+        const SpeechRecognitionConstructor = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+        const recognition = new SpeechRecognitionConstructor() as SpeechRecognition;
         
         recognition.continuous = true;
         recognition.interimResults = false;
@@ -457,6 +457,33 @@ export default function ConversationInterface({
                 <div className="text-xs mt-2 font-medium">{languageNames[person1Lang]}</div>
               </button>
             </div>
+
+            {/* Current Transcription Display */}
+            {currentTranscription && (
+              <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-200">
+                <div className="text-center space-y-3">
+                  <div className="flex items-center justify-center space-x-2">
+                    <div className={`w-3 h-3 rounded-full ${
+                      currentTranscription.speaker === 'person1' ? 'bg-sage-500' : 'bg-ocean-500'
+                    }`}></div>
+                    <span className="text-sm font-medium text-gray-700">
+                      {currentTranscription.speaker === 'person1' ? 'Coach' : 'Statushouder'}
+                    </span>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <div>
+                      <p className="text-xs text-gray-500 mb-1">Opgenomen:</p>
+                      <p className="text-sm text-gray-800 font-medium">{currentTranscription.originalText}</p>
+                    </div>
+                    <div className="border-t pt-2">
+                      <p className="text-xs text-gray-500 mb-1">Vertaling:</p>
+                      <p className="text-sm text-gray-800 font-medium">{currentTranscription.translatedText}</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* Divider */}
             <div className="flex items-center justify-center">
