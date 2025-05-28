@@ -1,4 +1,3 @@
-
 import { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -18,6 +17,12 @@ interface Message {
   originalText: string;
   translatedText: string;
   timestamp: Date;
+}
+
+interface TranscriptionResult {
+  speaker: 'person1' | 'person2';
+  originalText: string;
+  translatedText: string;
 }
 
 const languageNames: Record<string, string> = {
@@ -59,9 +64,12 @@ export default function ConversationInterface({
   const [isRecording, setIsRecording] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
+  const [currentTranscription, setCurrentTranscription] = useState<TranscriptionResult | null>(null);
   const [showSummary, setShowSummary] = useState(false);
   const [openaiApiKey, setOpenaiApiKey] = useState('');
   const [showApiKeyInput, setShowApiKeyInput] = useState(false);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const recognitionRef = useRef<SpeechRecognition | null>(null);
   const { toast } = useToast();
 
   const translateText = async (text: string, fromLang: string, toLang: string): Promise<string> => {
@@ -99,71 +107,116 @@ export default function ConversationInterface({
     }
   };
 
-  const startRecording = (speaker: 'person1' | 'person2') => {
+  const startRecording = async (speaker: 'person1' | 'person2') => {
     if (isRecording || isProcessing) return;
 
-    setCurrentSpeaker(speaker);
-    setIsRecording(true);
-    
-    toast({
-      title: `${speaker === 'person1' ? 'Coach' : 'Statushouder'} spreekt`,
-      description: 'Druk nogmaals om te stoppen...',
-      duration: 2000,
-    });
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const mediaRecorder = new MediaRecorder(stream);
+      mediaRecorderRef.current = mediaRecorder;
+
+      // Setup speech recognition
+      if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        const recognition = new SpeechRecognition();
+        
+        recognition.continuous = true;
+        recognition.interimResults = false;
+        recognition.lang = speaker === 'person1' ? person1Lang : person2Lang;
+        
+        recognitionRef.current = recognition;
+
+        recognition.onresult = async (event) => {
+          const transcript = event.results[event.results.length - 1][0].transcript;
+          console.log('Transcription:', transcript);
+          
+          // Translate the text
+          const fromLang = speaker === 'person1' ? person1Lang : person2Lang;
+          const toLang = speaker === 'person1' ? person2Lang : person1Lang;
+          
+          setIsProcessing(true);
+          const translation = await translateText(transcript, fromLang, toLang);
+          
+          // Show current transcription/translation
+          setCurrentTranscription({
+            speaker,
+            originalText: transcript,
+            translatedText: translation
+          });
+          
+          setIsProcessing(false);
+        };
+
+        recognition.onerror = (event) => {
+          console.error('Speech recognition error:', event.error);
+          toast({
+            title: 'Opname fout',
+            description: 'Er is een fout opgetreden bij het opnemen.',
+            duration: 3000,
+          });
+          stopRecording();
+        };
+
+        recognition.start();
+      }
+
+      setCurrentSpeaker(speaker);
+      setIsRecording(true);
+      setCurrentTranscription(null);
+      
+      toast({
+        title: `${speaker === 'person1' ? 'Coach' : 'Statushouder'} spreekt`,
+        description: 'Druk nogmaals om te stoppen...',
+        duration: 2000,
+      });
+
+    } catch (error) {
+      console.error('Error starting recording:', error);
+      toast({
+        title: 'Microfoon fout',
+        description: 'Kan geen toegang krijgen tot de microfoon.',
+        duration: 3000,
+      });
+    }
   };
 
-  const stopRecording = async () => {
+  const stopRecording = () => {
     if (!isRecording || !currentSpeaker) return;
 
+    // Stop speech recognition
+    if (recognitionRef.current) {
+      recognitionRef.current.stop();
+      recognitionRef.current = null;
+    }
+
+    // Stop media recorder
+    if (mediaRecorderRef.current) {
+      mediaRecorderRef.current.stop();
+      mediaRecorderRef.current.stream.getTracks().forEach(track => track.stop());
+      mediaRecorderRef.current = null;
+    }
+
+    // Add to messages if we have a transcription
+    if (currentTranscription) {
+      const newMessage: Message = {
+        id: Date.now().toString(),
+        speaker: currentTranscription.speaker,
+        originalText: currentTranscription.originalText,
+        translatedText: currentTranscription.translatedText,
+        timestamp: new Date(),
+      };
+
+      setMessages(prev => [...prev, newMessage]);
+      setCurrentTranscription(null);
+
+      toast({
+        title: 'Vertaling voltooid',
+        description: 'Tekst is toegevoegd aan het gesprek',
+        duration: 2000,
+      });
+    }
+
     setIsRecording(false);
-    setIsProcessing(true);
-
-    // Simulate processing
-    await new Promise(resolve => setTimeout(resolve, 1000));
-
-    // Mock transcription
-    const mockTranscriptions = {
-      person1: [
-        "Hallo, hoe gaat het met je?",
-        "We gaan vandaag praten over werk mogelijkheden.",
-        "Heb je al nagedacht over welke sector je interesseert?",
-        "Welke ervaring heb je met werk in je eigen land?",
-        "Ik kan je helpen met het vinden van passende cursussen."
-      ],
-      person2: [
-        "Hello, I am fine, thank you.",
-        "Yes, I am very interested in healthcare work.",
-        "I have experience with elderly care.",
-        "I worked as a nurse for five years.",
-        "That would be very helpful, thank you."
-      ]
-    };
-
-    const randomTranscription = mockTranscriptions[currentSpeaker][Math.floor(Math.random() * mockTranscriptions[currentSpeaker].length)];
-
-    // Translate using AI
-    const fromLang = currentSpeaker === 'person1' ? person1Lang : person2Lang;
-    const toLang = currentSpeaker === 'person1' ? person2Lang : person1Lang;
-    
-    const translation = await translateText(randomTranscription, fromLang, toLang);
-    
-    const newMessage: Message = {
-      id: Date.now().toString(),
-      speaker: currentSpeaker,
-      originalText: randomTranscription,
-      translatedText: translation,
-      timestamp: new Date(),
-    };
-
-    setMessages(prev => [...prev, newMessage]);
-
-    toast({
-      title: 'Vertaling voltooid',
-      description: 'Tekst is vertaald en weergegeven',
-      duration: 2000,
-    });
-
-    setIsProcessing(false);
     setCurrentSpeaker(null);
   };
 
