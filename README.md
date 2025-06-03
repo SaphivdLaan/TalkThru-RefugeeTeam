@@ -9,7 +9,7 @@ met een focus op eenvoud, rust en privacy.
 
 ---
 
-## 🔍 Projectdoel
+## Projectdoel
 
 De kern van TalkThru is om mensen elkaar beter te laten begrijpen zonder afhankelijk te zijn van tolken
 of gebrekkige vertaaltools zoals Google Translate. De app:
@@ -24,7 +24,7 @@ vertaaltool voor dagelijks gebruik.
 
 ---
 
-## ⚙️ Technische specificaties
+## Technische specificaties
 
 Dit project is gebouwd met de volgende stack:
 
@@ -36,7 +36,7 @@ Dit project is gebouwd met de volgende stack:
 
 ---
 
-## 🧪 Project starten
+## Project starten
 
 Je kunt dit project bewerken via Lovable of lokaal op je eigen machine.
 
@@ -72,7 +72,7 @@ De app draait nu lokaal en ververst automatisch bij wijzigingen.
 
 ---
 
-## 🌐 Deployment
+## Deployment
 
 Publiceren kan direct via Lovable:
 Ga naar het project, klik op **Share** → **Publish**.
@@ -84,7 +84,7 @@ Meer info: [Lovable Docs – Custom Domains](https://docs.lovable.dev/domains)
 
 ---
 
-## 🤝 Context en samenwerking
+## Context en samenwerking
 
 Dit project is ontstaan uit een samenwerking met het clubhuis, een plek waar statushouders
 ondersteund worden in hun participatie in de samenleving. TalkThru is ontworpen op basis
